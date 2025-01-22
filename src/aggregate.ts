@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { reportToRow, reportToRowHeaders } from './report-to-row.js';
-import csvStringify from 'csv-stringify/lib/sync.js';
+import { stringify as csvStringify } from 'csv-stringify/sync';
 
 const { readdir, writeFile } = fs.promises;
 
@@ -14,17 +14,20 @@ export const aggregateCSVReports = async (dataDirPath: string) => {
   let headers: string[] | null = null;
 
   for (const fileName of files) {
-    if (fileName !== '.DS_Store') {
-      const filePath = path.join(reportsDirPath, fileName);
-      const fileContents = fs.readFileSync(filePath, 'utf8');
-      // If headers aren't set yet, do it now
-      if (!headers) headers = reportToRowHeaders(fileContents);
-      const newRow = reportToRow(fileContents);
-      if (newRow) {
-        rows.push(newRow);
-      } else {
-        console.log(`Failed to bundle: ${fileName}`);
-      }
+    if (fileName === '.DS_Store') {
+      continue;
+    }
+
+    const filePath = path.join(reportsDirPath, fileName);
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const content = JSON.parse(fileContents);
+    // If headers aren't set yet, do it now
+    if (!headers) headers = reportToRowHeaders(content);
+    const newRow = reportToRow(content);
+    if (newRow) {
+      rows.push(newRow);
+    } else {
+      console.log(`Failed to bundle: ${fileName}`);
     }
   }
 
@@ -32,6 +35,6 @@ export const aggregateCSVReports = async (dataDirPath: string) => {
 
   const aggregatedReportData = csvStringify(rows);
 
-  const writePath = path.join(dataDirPath, 'aggregatedMobileReport.csv');
+  const writePath = path.join(dataDirPath, 'aggregatedReport.csv');
   await writeFile(writePath, aggregatedReportData);
 };

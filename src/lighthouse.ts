@@ -3,7 +3,7 @@ import { createEmitter } from './emitter.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const lighthouseCli = require.resolve('lighthouse/lighthouse-cli');
+const lighthouseCli = require.resolve('lighthouse/cli');
 
 let lighthouseLimit = 2;
 let currentLighthouseInstances = 0;
@@ -26,19 +26,33 @@ export type LighthouseEvents = {
   error: (message: Error) => void;
 };
 
-export const runLighthouseReport = (url: string, maxConcurrency?: number) => {
+export const runLighthouseReport = (
+  url: string,
+  maxConcurrency?: number,
+  categories?: string[] | null,
+  formFactor: string = 'mobile'
+) => {
   if (maxConcurrency) lighthouseLimit = maxConcurrency;
   const { on, emit } = createEmitter<LighthouseEvents>();
   const run = () => {
     emit('begin');
+
+    // Construct the `--only-categories` argument if categories are provided
+    const categoryArgs = categories && categories.length > 0
+      ? [`--only-categories=${categories.join(',')}`]
+      : [];
+
+    const formFactorArg = formFactor === 'desktop' ? ['--preset=desktop'] : [];
+
     const lighthouseProcess = spawn('node', [
       lighthouseCli,
       url,
-      '--output=csv',
+      '--output=json',
       '--output-path=stdout',
-      '--only-categories=performance',
       '--chrome-flags="--headless"',
       '--max-wait-for-load=45000',
+      ...categoryArgs,
+      ...formFactorArg,
     ]);
 
     let stdout = '';

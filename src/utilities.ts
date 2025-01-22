@@ -15,6 +15,9 @@ export const usefulDirName = () => {
 type OutputFormat = 'json' | 'html' | 'csv';
 
 export const makeFileNameFromUrl = (url: string, extension: OutputFormat) => {
-  const newUrl = url.replace(/\./g, '_').replace(/\//g, '-');
+  // Strip common prefixes
+  const strippedUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
+
+  const newUrl = strippedUrl.replace(/\./g, '_').replace(/\//g, '-');
   return `${sanitize(newUrl)}.${extension}`;
 };

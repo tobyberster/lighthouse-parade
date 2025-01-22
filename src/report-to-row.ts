@@ -1,62 +1,45 @@
-import csvParse from 'csv-parse/lib/sync.js';
+export const reportToRowHeaders = (report: any) => {
+  const categories: string[] = [];
 
-export const reportToRowHeaders = (csvFileContents: string) => {
-  const singleReportRows: LighthouseCSVReportRow[] | undefined = csvParse(
-    csvFileContents,
-    {
-      columns: true,
-      skip_empty_lines: true,
-      ltrim: true,
-      relax: true, // https://csv.js.org/parse/options/
-    }
-  );
-  if (!singleReportRows || singleReportRows.length === 0)
-    throw new Error('Unable to find report headers');
+  Object.values(report.categories).forEach((category: any) => {
+    categories.push(category.title);
+  });
+
   const headers = [
-    'Requested URL',
-    'Final URL',
-    ...singleReportRows.map(
-      (row) => `${row.category}: ${row.title} (${row.type})`
-    ),
+    'URL',
+    'Form Factor',
+    ...categories,
   ];
   return headers;
 };
 
-export const reportToRow = (csvFileContents: string) => {
-  const reportRows: LighthouseCSVReportRow[] | undefined = csvParse(
-    csvFileContents,
-    {
-      // https://csv.js.org/parse/options/
-      columns: true,
-      skip_empty_lines: true,
-      ltrim: true,
-    }
-  );
+export const reportToRow = (report: any) => {
   // Sometimes reports come out half-baked...
-  if (!reportRows || reportRows.length === 0) {
+  if (!report || typeof report !== "object" || !report.categories || typeof report.categories !== "object") {
     return false;
   }
 
+  const { finalUrl, configSettings, categories } = report;
+
+  const result: string[] = [];
+
+  for (const key of Object.keys(categories)) {
+    const category = categories[key];
+    if (category && typeof category === "object" && "score" in category) {
+      result.push(category.score);
+    }
+  }
+
   const csvRow: CSVReportRow = [
-    reportRows[0].requestedUrl,
-    reportRows[0].finalUrl,
-    ...reportRows.map((reportRow) => reportRow.score),
+    finalUrl,
+    configSettings.formFactor,
+    ...result,
   ];
   return csvRow;
 };
 
-interface LighthouseCSVReportRow {
-  requestedUrl: string;
-  finalUrl: string;
-  category: string;
-  name: string;
-  title: string;
-  type: string;
-  score: string;
-}
-
 type CSVReportRow = [
-  requestedUrl: string,
   finalUrl: string,
+  formFactor: string,
   ...scores: string[]
 ];

@@ -14,6 +14,8 @@ interface ScanOptions extends CrawlOptions {
   crawler?: typeof defaultCrawler;
   lighthouse?: typeof runLighthouseReport;
   lighthouseConcurrency: number;
+  categories?: string[] | null;
+  formFactors?: string[] | null;
 }
 
 type ScanEvents = {
@@ -21,7 +23,7 @@ type ScanEvents = {
   info: (message: string) => void;
   reportBegin: (url: string) => void;
   reportFail: (url: string, error: string | Error) => void;
-  reportComplete: (url: string, reportData: string) => void;
+  reportComplete: (url: string, reportData: string, formFactor: string) => void;
   resolve: () => void;
   urlFound: (
     url: string,
@@ -38,6 +40,8 @@ export const scan = (
     lighthouse = runLighthouseReport,
     dataDirectory,
     lighthouseConcurrency,
+    categories,
+    formFactors,
     ...opts
   }: ScanOptions
 ) => {
@@ -55,21 +59,23 @@ export const scan = (
   crawlerEmitter.on('urlFound', (url, contentType, bytes, statusCode) => {
     hasFoundAnyPages = true;
     emit('urlFound', url, contentType, bytes, statusCode);
-    lighthousePromises.push(
-      new Promise((resolve) => {
-        lighthouse(url, lighthouseConcurrency)
-          .on('begin', () => emit('reportBegin', url))
-          .on('complete', (reportData) => {
-            emit('reportComplete', url, reportData);
-            resolve();
-          })
-          .on('error', (error) => {
-            emit('reportFail', url, error);
-            // Resolves instead of rejects because we want to continue with the other lighthouses even if one fails
-            resolve();
-          });
-      })
-    );
+    (formFactors ?? ['mobile']).forEach((formFactor) => {
+      lighthousePromises.push(
+        new Promise((resolve) => {
+          lighthouse(url, lighthouseConcurrency, categories, formFactor)
+            .on('begin', () => emit('reportBegin', url))
+            .on('complete', (reportData) => {
+              emit('reportComplete', url, reportData, formFactor);
+              resolve();
+            })
+            .on('error', (error) => {
+              emit('reportFail', url, error);
+              // Resolves instead of rejects because we want to continue with the other lighthouses even if one fails
+              resolve();
+            });
+        })
+      );
+    });
   });
 
   crawlerEmitter.on('warning', (message) => emit('warning', message));

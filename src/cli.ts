@@ -38,7 +38,7 @@ const isFullURL = (path: string) => {
     // eslint-disable-next-line no-new
     new URL(path);
     return true;
-  } catch {}
+  } catch { }
 
   return false;
 };
@@ -76,6 +76,14 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
   .option(
     '--exclude-path-glob',
     'Specify a glob (in quotes) for paths to exclude. Links to matched paths will not be crawled. The entry page will be crawled regardless of this flag. This flag can be specified multiple times to exclude multiple paths. `*` matches one url segment, `**` matches multiple segments. Trailing slashes are ignored.'
+  )
+  .option(
+    '--categories',
+    'Specify which categories to include in the Lighthouse report. If not specified, all categories will be included.'
+  )
+  .option(
+    '--form-factor',
+    'Specify the form factor to use when running Lighthouse. Options are `mobile` or `desktop`, or both separated by a comma. Default is `mobile`.'
   )
   .action(
     (
@@ -133,6 +141,56 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
 
       const lighthouseConcurrency = opts['lighthouse-concurrency'];
 
+      const validCategories = ['performance', 'accessibility', 'best-practices', 'seo'];
+      const categoriesOption: unknown = opts['categories'];
+      let categories: string[] | null = null;
+
+      if (categoriesOption !== null && categoriesOption !== undefined) {
+        if (typeof categoriesOption !== 'string') {
+          throw new Error('--categories must be a comma-separated string or null');
+        }
+
+        // Split the input by commas, trim each value, and filter out empty strings
+        categories = categoriesOption
+          .split(',')
+          .map((category) => category.trim())
+          .filter((category) => category.length > 0);
+
+        // Validate that all provided categories are valid
+        const invalidCategories = categories.filter((category) => !validCategories.includes(category));
+        if (invalidCategories.length > 0) {
+          throw new Error(
+            `--categories contains invalid value(s): ${invalidCategories.join(', ')}. ` +
+            `Valid values are: ${validCategories.join(', ')}`
+          );
+        }
+      }
+
+      const validFormFactors = ['mobile', 'desktop'];
+      const formFactorOption: unknown = opts['form-factor'];
+      let formFactors: string[] = ['mobile'];
+
+      if (formFactorOption !== null && formFactorOption !== undefined) {
+        if (typeof formFactorOption !== 'string') {
+          throw new Error('--form-factor must be a comma-separated string or null');
+        }
+
+        // Split the input by commas, trim each value, and filter out empty strings
+        formFactors = formFactorOption
+          .split(',')
+          .map((formFactor) => formFactor.trim())
+          .filter((formFactor) => formFactor.length > 0);
+
+        // Validate that all provided form factors are valid
+        const invalidFormFactors = formFactors.filter((formFactor) => !validFormFactors.includes(formFactor));
+        if (invalidFormFactors.length > 0) {
+          throw new Error(
+            `--form-factor contains invalid value(s): ${invalidFormFactors.join(', ')}. ` +
+            `Valid values are: ${validFormFactors.join(', ')}`
+          );
+        }
+      }
+
       const scanner = scan(url, {
         ignoreRobotsTxt,
         dataDirectory: dataDirPath,
@@ -140,6 +198,8 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         maxCrawlDepth,
         includePathGlob: includePathGlob as string[],
         excludePathGlob: excludePathGlob as string[],
+        categories,
+        formFactors,
       });
 
       const enum State {
@@ -160,10 +220,10 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         const statusIcon = error
           ? symbols.error
           : state === State.Pending
-          ? ' '
-          : state === State.ReportInProgress
-          ? frame
-          : symbols.success;
+            ? ' '
+            : state === State.ReportInProgress
+              ? frame
+              : symbols.success;
         let output = `${statusIcon} ${url}`;
         if (error) {
           output += `\n  ${kleur.gray(error.toString())}`;
@@ -190,14 +250,13 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
           numPendingToDisplay === pendingUrls.length
             ? ''
             : kleur.dim(
-                `\n...And ${
-                  pendingUrls.length - numPendingToDisplay
-                } more pending`
-              );
+              `\n...And ${pendingUrls.length - numPendingToDisplay
+              } more pending`
+            );
         logUpdate(
           currentUrls.join('') +
-            pendingUrls.slice(0, numPendingToDisplay).join('') +
-            numHiddenUrls
+          pendingUrls.slice(0, numPendingToDisplay).join('') +
+          numHiddenUrls
         );
       };
 
@@ -242,10 +301,10 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         urlStates.set(url, { state: State.ReportComplete, error });
         log(printLine(url, State.ReportComplete, error));
       });
-      scanner.on('reportComplete', (url, reportData) => {
+      scanner.on('reportComplete', (url, reportData, formFactor) => {
         urlStates.set(url, { state: State.ReportComplete });
-        log(printLine(url, State.ReportComplete));
-        const reportFileName = makeFileNameFromUrl(url, 'csv');
+        log(printLine(url + ' (' + formFactor + ')', State.ReportComplete));
+        const reportFileName = makeFileNameFromUrl(url + '-' + formFactor, 'json');
 
         fs.writeFileSync(path.join(reportsDirPath, reportFileName), reportData);
       });
