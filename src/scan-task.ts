@@ -16,7 +16,7 @@ interface ScanOptions extends CrawlOptions {
   lighthouseConcurrency: number;
   categories?: string[] | null;
   formFactors?: string[] | null;
-  enableFullPageScreenshot: boolean;
+  enableFullPageScreenshot?: boolean | false;
 }
 
 type ScanEvents = {
@@ -43,6 +43,7 @@ export const scan = (
     lighthouseConcurrency,
     categories,
     formFactors,
+    enableFullPageScreenshot,
     ...opts
   }: ScanOptions
 ) => {
