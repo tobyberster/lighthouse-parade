@@ -16,6 +16,7 @@ interface ScanOptions extends CrawlOptions {
   lighthouseConcurrency: number;
   categories?: string[] | null;
   formFactors?: string[] | null;
+  enableFullPageScreenshot: boolean;
 }
 
 type ScanEvents = {
@@ -62,7 +63,7 @@ export const scan = (
     (formFactors ?? ['mobile']).forEach((formFactor) => {
       lighthousePromises.push(
         new Promise((resolve) => {
-          lighthouse(url, lighthouseConcurrency, categories, formFactor)
+          lighthouse(url, lighthouseConcurrency, categories, formFactor, enableFullPageScreenshot)
             .on('begin', () => emit('reportBegin', url))
             .on('complete', (reportData) => {
               emit('reportComplete', url, reportData, formFactor);

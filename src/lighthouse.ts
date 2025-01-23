@@ -30,7 +30,8 @@ export const runLighthouseReport = (
   url: string,
   maxConcurrency?: number,
   categories?: string[] | null,
-  formFactor: string = 'mobile'
+  formFactor: string = 'mobile',
+  enableFullPageScreenshot: boolean = false
 ) => {
   if (maxConcurrency) lighthouseLimit = maxConcurrency;
   const { on, emit } = createEmitter<LighthouseEvents>();
@@ -51,6 +52,7 @@ export const runLighthouseReport = (
       '--output-path=stdout',
       '--chrome-flags="--headless"',
       '--max-wait-for-load=45000',
+      enableFullPageScreenshot ? '' : '--disable-full-page-screenshot',
       ...categoryArgs,
       ...formFactorArg,
     ]);

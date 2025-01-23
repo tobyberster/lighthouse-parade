@@ -8,6 +8,8 @@ export const reportToRowHeaders = (report: any) => {
   const headers = [
     'URL',
     'Form Factor',
+    'Version',
+    'Runtime',
     ...categories,
   ];
   return headers;
@@ -19,7 +21,7 @@ export const reportToRow = (report: any) => {
     return false;
   }
 
-  const { finalUrl, configSettings, categories } = report;
+  const { finalUrl, configSettings, lighthouseVersion, fetchTime, categories } = report;
 
   const result: string[] = [];
 
@@ -33,6 +35,8 @@ export const reportToRow = (report: any) => {
   const csvRow: CSVReportRow = [
     finalUrl,
     configSettings.formFactor,
+    lighthouseVersion,
+    fetchTime,
     ...result,
   ];
   return csvRow;
@@ -41,5 +45,7 @@ export const reportToRow = (report: any) => {
 type CSVReportRow = [
   finalUrl: string,
   formFactor: string,
+  lighthouseVersion: string,
+  fetchTime: string,
   ...scores: string[]
 ];

@@ -85,6 +85,11 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
     '--form-factor',
     'Specify the form factor to use when running Lighthouse. Options are `mobile` or `desktop`, or both separated by a comma. Default is `mobile`.'
   )
+  .option(
+    '--enable-full-page-screenshot',
+    'Enable full page screenshots in Lighthouse reports',
+    false
+  )
   .action(
     (
       url,
@@ -101,6 +106,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
       // eslint-disable-next-line no-new
       new URL(url);
       const ignoreRobotsTxt: boolean = opts['ignore-robots'];
+      const enableFullPageScreenshot: boolean = opts['enable-full-page-screenshot'];
       const reportsDirPath = path.join(dataDirPath, 'reports');
       fs.mkdirSync(reportsDirPath, { recursive: true });
 
@@ -200,6 +206,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         excludePathGlob: excludePathGlob as string[],
         categories,
         formFactors,
+        enableFullPageScreenshot,
       });
 
       const enum State {
