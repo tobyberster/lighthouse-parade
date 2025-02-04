@@ -3,6 +3,7 @@ import type { QueueItem } from 'simplecrawler/queue.js';
 import type { IncomingMessage } from 'http';
 import { createEmitter } from './emitter.js';
 import { isContentTypeHtml } from './utilities.js';
+import { CrawlerEvents } from './types.js';
 import globrex from 'globrex';
 
 export interface CrawlOptions {
@@ -16,16 +17,6 @@ export interface CrawlOptions {
   /** Any path that matches these globs will not be crawled. */
   excludePathGlob: string[];
 }
-
-export type CrawlerEvents = {
-  urlFound: (
-    url: string,
-    contentType: string,
-    bytes: number,
-    statusCode: number
-  ) => void;
-  warning: (message: string | Error) => void;
-};
 
 export const crawl = (siteUrl: string, opts: CrawlOptions) => {
   const { on, emit, promise } = createEmitter<CrawlerEvents>();

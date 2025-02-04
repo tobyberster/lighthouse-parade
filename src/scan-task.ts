@@ -3,6 +3,7 @@ import { runLighthouseReport } from './lighthouse.js';
 import type { CrawlOptions } from './crawl.js';
 import { crawl as defaultCrawler } from './crawl.js';
 import { createEmitter } from './emitter.js';
+import type { ScanEvents } from './types.js';
 
 interface ScanOptions extends CrawlOptions {
   /** Where to store the newly-generated reports */
@@ -18,21 +19,6 @@ interface ScanOptions extends CrawlOptions {
   formFactors?: string[] | null;
   enableFullPageScreenshot?: boolean | false;
 }
-
-type ScanEvents = {
-  warning: (message: string | Error) => void;
-  info: (message: string) => void;
-  reportBegin: (url: string) => void;
-  reportFail: (url: string, error: string | Error) => void;
-  reportComplete: (url: string, reportData: string, formFactor: string) => void;
-  resolve: () => void;
-  urlFound: (
-    url: string,
-    contentType: string,
-    bytes: number,
-    statusCode: number
-  ) => void;
-};
 
 export const scan = (
   siteUrl: string,

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as kleur from 'kleur/colors';
@@ -8,7 +9,8 @@ import * as path from 'path';
 import sade from 'sade';
 import { scan } from './scan-task.js';
 import { makeFileNameFromUrl, usefulDirName } from './utilities.js';
-import { aggregateCSVReports } from './aggregate.js';
+import { aggregateReports } from './aggregate.js';
+import { DBConfig } from './types.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -42,6 +44,12 @@ const isFullURL = (path: string) => {
 
   return false;
 };
+
+dotenv.config();
+console.log("Loaded environment variables:");
+for (const [key, value] of Object.entries(process.env)) {
+  console.log(`${key}=${value}`);
+}
 
 sade('lighthouse-parade <url> [dataDirectory]', true)
   .version(version)
@@ -90,6 +98,16 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
     'Enable full page screenshots in Lighthouse reports',
     false
   )
+  .option(
+    '--csv-export',
+    'Export the aggregated report data to a CSV file. Default is true.',
+    true
+  )
+  .option(
+    '--persist',
+    'Persist the aggregated report data to a database. Default is true.',
+    true
+  )
   .action(
     (
       url,
@@ -105,17 +123,21 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
       // the prorgam will exit here instead of continuing (which would lead to a more confusing error)
       // eslint-disable-next-line no-new
       new URL(url);
-      const ignoreRobotsTxt: boolean = opts['ignore-robots'];
-      const enableFullPageScreenshot: boolean = opts['enable-full-page-screenshot'];
+
+      const ignoreRobotsTxt: boolean = opts['ignore-robots'] ?? process.env.IGNORE_ROBOTS === 'true' ?? false;
+      const enableFullPageScreenshot: boolean = opts['enable-full-page-screenshot'] ?? process.env.ENABLE_FULL_PAGE_SCREENSHOT === 'true' ?? false;
+      const csvExport: boolean = opts['csv-export'] ?? process.env.CSV_EXPORT === 'true' ?? true;
+      const persistToDatabase: boolean = opts['persist'] ?? process.env.PERSIST_TO_DATABASE === 'true' ?? true;
+
       const reportsDirPath = path.join(dataDirPath, 'reports');
       fs.mkdirSync(reportsDirPath, { recursive: true });
 
-      const userAgent: unknown = opts['crawler-user-agent'];
+      const userAgent: unknown = opts['crawler-user-agent'] ?? process.env.CRAWLER_USER_AGENT;
       if (userAgent !== undefined && typeof userAgent !== 'string') {
         throw new Error('--crawler-user-agent must be a string');
       }
 
-      const maxCrawlDepth: unknown = opts['max-crawl-depth'];
+      const maxCrawlDepth: unknown = opts['max-crawl-depth'] ?? (process.env.MAX_CRAWL_DEPTH && parseInt(process.env.MAX_CRAWL_DEPTH));
 
       if (maxCrawlDepth !== undefined && typeof maxCrawlDepth !== 'number') {
         throw new Error('--max-crawl-depth must be a number');
@@ -145,10 +167,11 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         throw new Error('--exclude-path-glob must be path(s), not full URL(s)');
       }
 
-      const lighthouseConcurrency = opts['lighthouse-concurrency'];
+      const lighthouseConcurrency = opts['lighthouse-concurrency'] ?? (process.env.LIGHTHOUSE_CONCURRENCY && parseInt(process.env.LIGHTHOUSE_CONCURRENCY))
+        ?? os.cpus().length - 1;
 
       const validCategories = ['performance', 'accessibility', 'best-practices', 'seo'];
-      const categoriesOption: unknown = opts['categories'];
+      const categoriesOption: unknown = opts['categories'] || process.env.CATEGORIES?.split(',') || null;
       let categories: string[] | null = null;
 
       if (categoriesOption !== null && categoriesOption !== undefined) {
@@ -173,7 +196,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
       }
 
       const validFormFactors = ['mobile', 'desktop'];
-      const formFactorOption: unknown = opts['form-factor'];
+      const formFactorOption: unknown = opts['form-factor'] || process.env.FORM_FACTOR?.split(',') || [];
       let formFactors: string[] = ['mobile'];
 
       if (formFactorOption !== null && formFactorOption !== undefined) {
@@ -195,6 +218,23 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
             `Valid values are: ${validFormFactors.join(', ')}`
           );
         }
+      }
+
+      // Database configuration
+      const dbConfig: DBConfig = (process.env.DB_HOST &&
+        process.env.DB_USER &&
+        process.env.DB_PASSWORD &&
+        process.env.DB_NAME)
+        ? {
+          host: process.env.DB_HOST,
+          port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432, // default port
+          user: process.env.DB_USER,
+          password: process.env.DB_PASSWORD,
+          database: process.env.DB_NAME,
+        }
+        : null;
+      if (persistToDatabase && !dbConfig) {
+        throw new Error('Database configuration is required to persist data to the database or disable the --persist flag');
       }
 
       const scanner = scan(url, {
@@ -329,7 +369,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
 
         console.log('Aggregating reports...');
 
-        await aggregateCSVReports(dataDirPath);
+        await aggregateReports(dataDirPath, csvExport, persistToDatabase, dbConfig || undefined);
 
         console.log('DONE!');
       });

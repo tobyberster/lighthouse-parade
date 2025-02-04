@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { createEmitter } from './emitter.js';
 import { createRequire } from 'module';
+import { LighthouseEvents } from './types.js';
 
 const require = createRequire(import.meta.url);
 const lighthouseCli = require.resolve('lighthouse/cli');
@@ -18,12 +19,6 @@ const runLighthouseQueue = () => {
     currentLighthouseInstances++;
     run();
   }
-};
-
-export type LighthouseEvents = {
-  begin: () => void;
-  complete: (reportData: string) => void;
-  error: (message: Error) => void;
 };
 
 export const runLighthouseReport = (

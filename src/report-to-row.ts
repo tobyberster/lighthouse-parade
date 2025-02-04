@@ -1,3 +1,6 @@
+import { normalizeUrl } from './utilities.js';
+import { CSVReportRow } from './types.js';
+
 export const reportToRowHeaders = (report: any) => {
   const categories: string[] = [];
 
@@ -7,6 +10,8 @@ export const reportToRowHeaders = (report: any) => {
 
   const headers = [
     'URL',
+    'Normalized URL',
+    'Protocol',
     'Form Factor',
     'Version',
     'Runtime',
@@ -22,6 +27,7 @@ export const reportToRow = (report: any) => {
   }
 
   const { finalUrl, configSettings, lighthouseVersion, fetchTime, categories } = report;
+  const { normalizedUrl, protocol } = normalizeUrl(finalUrl);
 
   const result: string[] = [];
 
@@ -34,6 +40,8 @@ export const reportToRow = (report: any) => {
 
   const csvRow: CSVReportRow = [
     finalUrl,
+    normalizedUrl,
+    protocol,
     configSettings.formFactor,
     lighthouseVersion,
     fetchTime,
@@ -41,11 +49,3 @@ export const reportToRow = (report: any) => {
   ];
   return csvRow;
 };
-
-type CSVReportRow = [
-  finalUrl: string,
-  formFactor: string,
-  lighthouseVersion: string,
-  fetchTime: string,
-  ...scores: string[]
-];

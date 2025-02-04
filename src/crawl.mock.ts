@@ -1,4 +1,4 @@
-import type { CrawlerEvents } from './crawl.js';
+import type { CrawlerEvents } from './types.js';
 import { createEmitter } from './emitter.js';
 
 export const createFakeCrawler = () => {
