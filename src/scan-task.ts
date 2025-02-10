@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { runLighthouseReport } from './lighthouse.js';
 import type { CrawlOptions } from './crawl.js';
-import { crawl as defaultCrawler } from './crawl.js';
+import { PageCrawler as defaultCrawler, createCrawler } from './crawl.js';
 import { createEmitter } from './emitter.js';
 import type { ScanEvents } from './types.js';
 
@@ -18,6 +18,7 @@ interface ScanOptions extends CrawlOptions {
   categories?: string[] | null;
   formFactors?: string[] | null;
   enableFullPageScreenshot?: boolean | false;
+  useSitemap?: boolean | false;
 }
 
 export const scan = (
@@ -30,6 +31,7 @@ export const scan = (
     categories,
     formFactors,
     enableFullPageScreenshot,
+    useSitemap,
     ...opts
   }: ScanOptions
 ) => {
@@ -40,7 +42,8 @@ export const scan = (
 
   emit('info', 'Starting the crawl...');
 
-  const crawlerEmitter = crawler(siteUrl, opts);
+  //const crawlerEmitter = crawler(siteUrl, opts);
+  const crawlerEmitter = createCrawler(useSitemap ? 'sitemap' : 'standard', siteUrl, opts);
 
   const lighthousePromises: Promise<void>[] = [];
 

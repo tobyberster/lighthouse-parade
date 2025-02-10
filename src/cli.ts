@@ -46,10 +46,6 @@ const isFullURL = (path: string) => {
 };
 
 dotenv.config();
-console.log("Loaded environment variables:");
-for (const [key, value] of Object.entries(process.env)) {
-  console.log(`${key}=${value}`);
-}
 
 sade('lighthouse-parade <url> [dataDirectory]', true)
   .version(version)
@@ -101,12 +97,17 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
   .option(
     '--csv-export',
     'Export the aggregated report data to a CSV file. Default is true.',
-    true
+    false
   )
   .option(
     '--persist',
     'Persist the aggregated report data to a database. Default is true.',
-    true
+    false
+  )
+  .option(
+    '--sitemap',
+    'Identify the sitemap URL for the site. If provided, the sitemap will be used to seed the crawler instead of the provided URL.',
+    false
   )
   .action(
     (
@@ -126,8 +127,9 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
 
       const ignoreRobotsTxt: boolean = opts['ignore-robots'] ?? process.env.IGNORE_ROBOTS === 'true' ?? false;
       const enableFullPageScreenshot: boolean = opts['enable-full-page-screenshot'] ?? process.env.ENABLE_FULL_PAGE_SCREENSHOT === 'true' ?? false;
-      const csvExport: boolean = opts['csv-export'] ?? process.env.CSV_EXPORT === 'true' ?? true;
-      const persistToDatabase: boolean = opts['persist'] ?? process.env.PERSIST_TO_DATABASE === 'true' ?? true;
+      const csvExport: boolean = opts['csv-export'] ?? process.env.CSV_EXPORT === 'true' ?? false;
+      const persistToDatabase: boolean = opts['persist'] ?? process.env.PERSIST_TO_DATABASE === 'true' ?? false;
+      const useSitemap: boolean = opts['sitemap'] ?? process.env.SITEMAP === 'true' ?? false;
 
       const reportsDirPath = path.join(dataDirPath, 'reports');
       fs.mkdirSync(reportsDirPath, { recursive: true });
@@ -247,6 +249,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         categories,
         formFactors,
         enableFullPageScreenshot,
+        useSitemap,
       });
 
       const enum State {
