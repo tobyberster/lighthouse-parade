@@ -46,6 +46,10 @@ const isFullURL = (path: string) => {
 };
 
 dotenv.config();
+console.log("Loaded environment variables:");
+for (const [key, value] of Object.entries(process.env)) {
+  console.log(`${key}=${value}`);
+}
 
 sade('lighthouse-parade <url> [dataDirectory]', true)
   .version(version)
@@ -173,8 +177,10 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
         ?? os.cpus().length - 1;
 
       const validCategories = ['performance', 'accessibility', 'best-practices', 'seo'];
-      const categoriesOption: unknown = opts['categories'] || process.env.CATEGORIES?.split(',') || null;
+      const categoriesOption: unknown = opts['categories'] || process.env.CATEGORIES || null;
       let categories: string[] | null = null;
+
+      console.log(categoriesOption);
 
       if (categoriesOption !== null && categoriesOption !== undefined) {
         if (typeof categoriesOption !== 'string') {
@@ -198,7 +204,7 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
       }
 
       const validFormFactors = ['mobile', 'desktop'];
-      const formFactorOption: unknown = opts['form-factor'] || process.env.FORM_FACTOR?.split(',') || [];
+      const formFactorOption: unknown = opts['form-factor'] || process.env.FORM_FACTOR || [];
       let formFactors: string[] = ['mobile'];
 
       if (formFactorOption !== null && formFactorOption !== undefined) {
