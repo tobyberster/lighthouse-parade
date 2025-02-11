@@ -96,18 +96,15 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
   )
   .option(
     '--csv-export',
-    'Export the aggregated report data to a CSV file. Default is true.',
-    false
+    'Export the aggregated report data to a CSV file. Default is true.'
   )
   .option(
     '--persist',
-    'Persist the aggregated report data to a database. Default is true.',
-    false
+    'Persist the aggregated report data to a database. Default is true.'
   )
   .option(
     '--sitemap',
-    'Identify the sitemap URL for the site. If provided, the sitemap will be used to seed the crawler instead of the provided URL.',
-    false
+    'Identify the sitemap URL for the site. If provided, the sitemap will be used to seed the crawler instead of the provided URL.'
   )
   .action(
     (
@@ -369,6 +366,10 @@ sade('lighthouse-parade <url> [dataDirectory]', true)
 
       scanner.promise.then(async () => {
         clearInterval(intervalId);
+
+        if (!csvExport && !persistToDatabase) {
+          return;
+        }
 
         console.log('Aggregating reports...');
 
